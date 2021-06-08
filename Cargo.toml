@@ -1,6 +1,6 @@
 [package]
 name = "maze_maker"
-version = "0.1.0"
+version = "0.1.2"
 authors = ["amirhosein"]
 edition = "2018"
 
@@ -8,4 +8,4 @@ edition = "2018"
 
 [dependencies]
 ggez = "0.6.0-rc1"
-glam = "0.15.2"
+rand = "0.8.3"
