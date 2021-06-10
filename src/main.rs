@@ -1,4 +1,4 @@
-use ggez::{graphics, ContextBuilder, GameResult, conf};
+use ggez::{graphics, ContextBuilder, GameResult};
 use ggez::event;
 
 mod lib;
@@ -14,6 +14,4 @@ fn main() -> GameResult<()> {
     graphics::set_window_title(&mut context, "Maze maker");
 
     event::run(context, event_loop, game_state);
-
-    Ok(())
 }

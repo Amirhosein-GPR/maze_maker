@@ -37,21 +37,13 @@ pub mod maze_maker {
     }
 
     struct Edge {
-        mesh: graphics::Mesh,
-        cell_width: f32,
-        cell_height: f32,
-        cell_location: [u16; 2],
-        position: Position
+        mesh: graphics::Mesh
     }
 
     impl Edge {
-        fn new(mesh: graphics::Mesh, cell_width: f32, cell_height: f32, cell_location: [u16; 2], position: Position) -> Self {
+        fn new(mesh: graphics::Mesh) -> Self {
             Self {
-                mesh,
-                cell_width,
-                cell_height,
-                cell_location,
-                position
+                mesh
             }
         }
     }
@@ -173,19 +165,13 @@ pub mod maze_maker {
 
     struct Cell {
         mesh: graphics::Mesh,
-        cell_width: f32,
-        cell_height: f32,
-        cell_location: [u16; 2],
         not_visited: bool
     }
     
     impl Cell {
-        fn new(mesh: graphics::Mesh, cell_width: f32, cell_height: f32, cell_location: [u16; 2], not_visited: bool) -> Self {
+        fn new(mesh: graphics::Mesh, not_visited: bool) -> Self {
             Self {
                 mesh,
-                cell_width,
-                cell_height,
-                cell_location,
                 not_visited
             }
         }
@@ -205,7 +191,7 @@ pub mod maze_maker {
             cell_width /= 20.0;
             cell_height /= 20.0;
 
-            let mut taken_paths: Vec<[u16; 2]> = Vec::new();
+            let taken_paths: Vec<[u16; 2]> = Vec::new();
             let mut cells: Vec<Vec<Cell>> = Vec::new();
             let mut edges: Vec<Vec<Edge>> = Vec::new();
 
@@ -225,9 +211,6 @@ pub mod maze_maker {
                             cell_rect,
                             graphics::Color::new(BACKGROUND_COLOR.0, BACKGROUND_COLOR.1, BACKGROUND_COLOR.2, BACKGROUND_COLOR.3)
                         ).unwrap(),
-                        cell_width,
-                        cell_height,
-                        [i as u16, j as u16],
                         true
                     ));
                     edges.get_mut(i).unwrap().push(Edge::new(
@@ -235,22 +218,14 @@ pub mod maze_maker {
                             context,
                             &[Vector2D::new(x + cell_width, y), Vector2D::new(x + cell_width, y + cell_height)],
                             5.0,
-                            graphics::Color::BLACK).unwrap(),
-                        cell_width,
-                        cell_height,
-                        [i as u16, j as u16],
-                        Position::Right
+                            graphics::Color::BLACK).unwrap()
                     ));
                     edges.get_mut(i).unwrap().push(Edge::new(
                         graphics::Mesh::new_line(
                             context,
                             &[Vector2D::new(x, y + cell_height), Vector2D::new(x + cell_width, y + cell_height)],
                             5.0,
-                            graphics::Color::BLACK).unwrap(),
-                        cell_width,
-                        cell_height,
-                        [i as u16, j as u16],
-                        Position::Down
+                            graphics::Color::BLACK).unwrap()
                     ));
                 }
             }
@@ -315,8 +290,7 @@ pub mod maze_maker {
             ).unwrap()
         }
 
-        fn recreate_line_mesh(&self, context: &mut Context, color: [f32; 4], cell_location: [u16; 2], position: Position) -> ggez::graphics::Mesh {
-            
+        fn recreate_line_mesh(&self, context: &mut Context, cell_location: [u16; 2], position: Position) -> ggez::graphics::Mesh {
             match position {
                 Position::Right => {
                     graphics::Mesh::new_line(
@@ -363,7 +337,7 @@ pub mod maze_maker {
                         .unwrap()
                         .get_mut(equvalent_cell_y as usize)
                         .unwrap()
-                        .mesh = self.recreate_line_mesh(context, [0.0, 0.0, 1.0, 1.0], [equvalent_cell_x, equvalent_cell_y], Position::Down);
+                        .mesh = self.recreate_line_mesh(context, [equvalent_cell_x, equvalent_cell_y], Position::Down);
                     self.cells.get_mut(previous_cell_location[1] as usize).unwrap().get_mut(previous_cell_location[0] as usize).unwrap().not_visited = false;
                 },
                 ComingFrom::Right => {
@@ -375,7 +349,7 @@ pub mod maze_maker {
                         .unwrap()
                         .get_mut(equvalent_cell_y as usize)
                         .unwrap()
-                        .mesh = self.recreate_line_mesh(context, [0.0, 0.0, 1.0, 1.0], [equvalent_cell_x, equvalent_cell_y], Position::Right);
+                        .mesh = self.recreate_line_mesh(context, [equvalent_cell_x, equvalent_cell_y], Position::Right);
                     self.cells.get_mut(previous_cell_location[1] as usize).unwrap().get_mut(previous_cell_location[0] as usize).unwrap().not_visited = false;
                 },
                 ComingFrom::Down => {
@@ -387,7 +361,7 @@ pub mod maze_maker {
                         .unwrap()
                         .get_mut(equvalent_cell_y as usize)
                         .unwrap()
-                        .mesh = self.recreate_line_mesh(context, [0.0, 0.0, 1.0, 1.0], [equvalent_cell_x, equvalent_cell_y], Position::Down);
+                        .mesh = self.recreate_line_mesh(context, [equvalent_cell_x, equvalent_cell_y], Position::Down);
                     self.cells.get_mut(previous_cell_location[1] as usize).unwrap().get_mut(previous_cell_location[0] as usize).unwrap().not_visited = false;
                 },
                 ComingFrom::Left => {
@@ -399,7 +373,7 @@ pub mod maze_maker {
                         .unwrap()
                         .get_mut(equvalent_cell_y as usize)
                         .unwrap()
-                        .mesh = self.recreate_line_mesh(context, [0.0, 0.0, 1.0, 1.0], [equvalent_cell_x, equvalent_cell_y], Position::Right);
+                        .mesh = self.recreate_line_mesh(context, [equvalent_cell_x, equvalent_cell_y], Position::Right);
                     self.cells.get_mut(previous_cell_location[1] as usize).unwrap().get_mut(previous_cell_location[0] as usize).unwrap().not_visited = false;
                 },
                 ComingFrom::CanNotMove => {
