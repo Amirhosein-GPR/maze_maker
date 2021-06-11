@@ -2,10 +2,8 @@ pub mod maze_maker {
     use ggez::{graphics, Context, GameResult};
     use ggez::event::EventHandler;
     use rand::Rng;
-
-    const BACKGROUND_COLOR: (f32, f32, f32, f32) = (0.5, 0.5, 0.5, 1.0);
-    const FOREGROUND_COLOR: (f32, f32, f32, f32) = (1.0, 1.0, 1.0, 1.0);
-    const REFRESH_RATE_IN_MILISECONDS: u64 = 200;
+    use std::fs::File;
+    use std::io::{Read};
 
     #[derive(Clone)]
     struct Vector2D {
@@ -58,21 +56,23 @@ pub mod maze_maker {
 
     struct HeadNode {
         mesh: graphics::Mesh,
-        taken_paths: Vec<[u16; 2]>,
+        taken_paths: Vec<[u8; 2]>,
         cell_width: f32,
         cell_height: f32,
-        cell_location: [u16; 2],
+        cell_location: [u8; 2],
+        table: [u8; 2],
         game_not_finished: bool
     }
 
     impl HeadNode {
-        fn new(mesh: graphics::Mesh, taken_paths: Vec<[u16; 2]>, cell_width: f32, cell_height: f32, cell_location: [u16; 2], game_not_finished: bool) -> Self {
+        fn new(mesh: graphics::Mesh, taken_paths: Vec<[u8; 2]>, cell_width: f32, cell_height: f32, cell_location: [u8; 2], table: [u8; 2], game_not_finished: bool) -> Self {
             Self {
                 mesh,
                 taken_paths,
                 cell_width,
                 cell_height,
                 cell_location,
+                table,
                 game_not_finished
             }
         }
@@ -95,7 +95,7 @@ pub mod maze_maker {
                         } else {
                             try_up = false;
                         },
-                        1 => if self.cell_location[1] != 19 && cells.get((self.cell_location[1] + 1) as usize).unwrap().get(self.cell_location[0] as usize).unwrap().not_visited == true {
+                        1 => if self.cell_location[1] != self.table[1] - 1 && cells.get((self.cell_location[1] + 1) as usize).unwrap().get(self.cell_location[0] as usize).unwrap().not_visited == true {
                             self.cell_location[1] += 1;
                             self.mesh = self.recreate_circle_mesh(context, [0.5, 0.0, 0.0, 1.0]);
                             coming_from = ComingFrom::Left;
@@ -106,7 +106,7 @@ pub mod maze_maker {
                         } else {
                             try_right = false;
                         },
-                        2 => if self.cell_location[0] != 19 && cells.get(self.cell_location[1] as usize).unwrap().get((self.cell_location[0] + 1) as usize).unwrap().not_visited == true {
+                        2 => if self.cell_location[0] != self.table[0] - 1 && cells.get(self.cell_location[1] as usize).unwrap().get((self.cell_location[0] + 1) as usize).unwrap().not_visited == true {
                             self.cell_location[0] += 1;
                             self.mesh = self.recreate_circle_mesh(context, [0.5, 0.0, 0.0, 1.0]);
                             coming_from = ComingFrom::Up;
@@ -182,26 +182,61 @@ pub mod maze_maker {
         edges: Vec<Vec<Edge>>,
         head_node: HeadNode,
         current_milisec: u64,
-        next_milisec: u64
+        next_milisec: u64,
+        foreground_color: [f32; 4],
+        refresh_rate_in_miliseconds: u64
     }
 
     impl Game {
         pub fn new(context: &mut Context) -> Self {
-            let (mut cell_width, mut cell_height) = graphics::drawable_size(context);
-            cell_width /= 20.0;
-            cell_height /= 20.0;
+            let mut settings = String::new();
+            File::open("./settings.conf").expect("Error opening the settings.conf file").read_to_string(&mut settings).expect("Error reading to string");
 
-            let taken_paths: Vec<[u16; 2]> = Vec::new();
+            let settings_rows = settings.split('\n').collect::<Vec<&str>>();
+            
+            let table_size = settings_rows.get(0)
+                .unwrap()
+                .split(':').collect::<Vec<&str>>().get(1).unwrap().split('x').collect::<Vec<&str>>();
+            
+            let mut table: [u8; 2] = [0; 2];
+            table[0] = table_size.get(0).unwrap().parse::<u8>().unwrap();
+            table[1] = table_size.get(1).unwrap().parse::<u8>().unwrap();
+
+            let background_color = settings_rows.get(1)
+                .unwrap()
+                .split(':')
+                .collect::<Vec<&str>>()
+                .get(1).unwrap().split(',').collect::<Vec<&str>>();
+            let background_color: [f32; 4] = [background_color.get(0).unwrap().parse::<f32>().unwrap(), background_color.get(1).unwrap().parse::<f32>().unwrap(), background_color.get(2).unwrap().parse::<f32>().unwrap(), background_color.get(3).unwrap().parse::<f32>().unwrap()];
+            let foreground_color = settings_rows.get(2)
+                .unwrap()
+                .split(':')
+                .collect::<Vec<&str>>()
+                .get(1).unwrap().split(',').collect::<Vec<&str>>();
+            let foreground_color: [f32; 4] = [foreground_color.get(0).unwrap().parse::<f32>().unwrap(), foreground_color.get(1).unwrap().parse::<f32>().unwrap(), foreground_color.get(2).unwrap().parse::<f32>().unwrap(), foreground_color.get(3).unwrap().parse::<f32>().unwrap()];
+            let refresh_rate_in_miliseconds = settings_rows
+                .get(3)
+                .unwrap()
+                .split(':')
+                .collect::<Vec<&str>>();
+            let refresh_rate_in_miliseconds = refresh_rate_in_miliseconds.get(1).unwrap();
+            let refresh_rate_in_miliseconds: u64 = refresh_rate_in_miliseconds.parse::<u64>().unwrap();
+
+            let (mut cell_width, mut cell_height) = graphics::drawable_size(context);
+            cell_width /= table[1] as f32;
+            cell_height /= table[0] as f32;
+
+            let taken_paths: Vec<[u8; 2]> = Vec::new();
             let mut cells: Vec<Vec<Cell>> = Vec::new();
             let mut edges: Vec<Vec<Edge>> = Vec::new();
 
             let mut cell_rect = graphics::Rect::new(0.0, 0.0, cell_width, cell_height);
 
-            for i in 0..20 {
+            for i in 0..table[1] as usize {
                 cells.push(Vec::new());
                 edges.push(Vec::new());
-                for j in 0..20 {
-                    let (x, y) = ((i * cell_width as usize) as f32, (j * cell_height as usize) as f32);
+                for j in 0..table[0] as usize {
+                    let (x, y) = (i as f32 * cell_width, j as f32 * cell_height);
                     cell_rect.x = x;
                     cell_rect.y = y;
                     cells.get_mut(i).unwrap().push(Cell::new(
@@ -209,7 +244,7 @@ pub mod maze_maker {
                             context,
                             graphics::DrawMode::fill(),
                             cell_rect,
-                            graphics::Color::new(BACKGROUND_COLOR.0, BACKGROUND_COLOR.1, BACKGROUND_COLOR.2, BACKGROUND_COLOR.3)
+                            graphics::Color::new(background_color[0], background_color[1], background_color[2], background_color[3])
                         ).unwrap(),
                         true
                     ));
@@ -230,8 +265,8 @@ pub mod maze_maker {
                 }
             }
 
-            let random_cell_index_1 = rand::thread_rng().gen_range(0..20);
-            let random_cell_index_2 = rand::thread_rng().gen_range(0..20);
+            let random_cell_index_1 = rand::thread_rng().gen_range(0..table[0]);
+            let random_cell_index_2 = rand::thread_rng().gen_range(0..table[1]);
 
             let head_node = HeadNode::new(
                 graphics::Mesh::new_circle(
@@ -245,6 +280,7 @@ pub mod maze_maker {
                 cell_width,
                 cell_height,
                 [random_cell_index_1, random_cell_index_2],
+                table,
                 true
             );
 
@@ -254,7 +290,7 @@ pub mod maze_maker {
                 context,
                 graphics::DrawMode::fill(),
                 cell_rect,
-                graphics::Color::new(FOREGROUND_COLOR.0, FOREGROUND_COLOR.1, FOREGROUND_COLOR.2, FOREGROUND_COLOR.3)
+                graphics::Color::new(foreground_color[0], foreground_color[1], foreground_color[2], foreground_color[3])
             ).unwrap();
             cells.get_mut(random_cell_index_2 as usize).unwrap().get_mut(random_cell_index_1 as usize).unwrap().not_visited = false;
 
@@ -263,7 +299,9 @@ pub mod maze_maker {
                 edges,
                 head_node,
                 current_milisec: 1000,
-                next_milisec: 0
+                next_milisec: 0,
+                foreground_color,
+                refresh_rate_in_miliseconds
             }
         }
 
@@ -281,7 +319,7 @@ pub mod maze_maker {
             graphics::draw(context, &self.head_node.mesh, graphics::DrawParam::default()).expect("Error in drawing meshe for head node");
         }
 
-        fn recreate_rectangle_mesh(&self, context: &mut Context, color: [f32; 4], cell_location: [u16; 2]) -> ggez::graphics::Mesh {
+        fn recreate_rectangle_mesh(&self, context: &mut Context, color: [f32; 4], cell_location: [u8; 2]) -> ggez::graphics::Mesh {
             graphics::Mesh::new_rectangle(
                 context,
                 graphics::DrawMode::fill(),
@@ -290,7 +328,7 @@ pub mod maze_maker {
             ).unwrap()
         }
 
-        fn recreate_line_mesh(&self, context: &mut Context, cell_location: [u16; 2], position: Position) -> ggez::graphics::Mesh {
+        fn recreate_line_mesh(&self, context: &mut Context, cell_location: [u8; 2], position: Position) -> ggez::graphics::Mesh {
             match position {
                 Position::Right => {
                     graphics::Mesh::new_line(
@@ -304,7 +342,7 @@ pub mod maze_maker {
                             cell_location[1] as f32 * self.head_node.cell_height + self.head_node.cell_height
                         )],
                         5.0,
-                        graphics::Color::new(FOREGROUND_COLOR.0, FOREGROUND_COLOR.1, FOREGROUND_COLOR.2, FOREGROUND_COLOR.3)
+                        graphics::Color::new(self.foreground_color[0], self.foreground_color[1], self.foreground_color[2], self.foreground_color[3])
                     ).unwrap()
                 },
                 Position::Down => {
@@ -319,14 +357,14 @@ pub mod maze_maker {
                             cell_location[1] as f32 * self.head_node.cell_height + self.head_node.cell_height
                         )],
                         5.0,
-                        graphics::Color::new(FOREGROUND_COLOR.0, FOREGROUND_COLOR.1, FOREGROUND_COLOR.2, FOREGROUND_COLOR.3)
+                        graphics::Color::new(self.foreground_color[0], self.foreground_color[1], self.foreground_color[2], self.foreground_color[3])
                     ).unwrap()
                 }
             }
         }
 
         fn remove_edge_and_light_up_cell(&mut self, context : &mut Context, coming_from: ComingFrom) {
-            let mut previous_cell_location: [u16; 2] = [0; 2];
+            let mut previous_cell_location: [u8; 2] = [0; 2];
             match coming_from {
                 ComingFrom::Up => {
                     previous_cell_location[0] = self.head_node.cell_location[0] - 1;
@@ -384,14 +422,14 @@ pub mod maze_maker {
                 .unwrap()
                 .get_mut(self.head_node.cell_location[0] as usize)
                 .unwrap()
-                .mesh = self.recreate_rectangle_mesh(context, [FOREGROUND_COLOR.0, FOREGROUND_COLOR.1, FOREGROUND_COLOR.2, FOREGROUND_COLOR.3], self.head_node.cell_location);
+                .mesh = self.recreate_rectangle_mesh(context, [self.foreground_color[0], self.foreground_color[1], self.foreground_color[2], self.foreground_color[3]], self.head_node.cell_location);
         }
 
         fn update_objects(&mut self, context: &mut Context) {
             if self.head_node.game_not_finished {
                 self.next_milisec = ggez::timer::time_since_start(context).as_millis() as u64;
                 if self.current_milisec < self.next_milisec {
-                    self.current_milisec = self.next_milisec + REFRESH_RATE_IN_MILISECONDS;
+                    self.current_milisec = self.next_milisec + self.refresh_rate_in_miliseconds;
                     let coming_from = self.head_node.move_by_one_cell_randomly(context, &mut self.cells);
                     self.remove_edge_and_light_up_cell(
                         context,

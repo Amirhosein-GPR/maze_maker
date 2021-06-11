@@ -1,6 +1,6 @@
 [package]
 name = "maze_maker"
-version = "0.1.3"
+version = "0.1.4"
 authors = ["amirhosein"]
 edition = "2018"
 
