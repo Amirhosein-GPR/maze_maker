@@ -208,12 +208,14 @@ pub mod maze_maker {
                 .collect::<Vec<&str>>()
                 .get(1).unwrap().split(',').collect::<Vec<&str>>();
             let background_color: [f32; 4] = [background_color.get(0).unwrap().parse::<f32>().unwrap(), background_color.get(1).unwrap().parse::<f32>().unwrap(), background_color.get(2).unwrap().parse::<f32>().unwrap(), background_color.get(3).unwrap().parse::<f32>().unwrap()];
+
             let foreground_color = settings_rows.get(2)
                 .unwrap()
                 .split(':')
                 .collect::<Vec<&str>>()
                 .get(1).unwrap().split(',').collect::<Vec<&str>>();
             let foreground_color: [f32; 4] = [foreground_color.get(0).unwrap().parse::<f32>().unwrap(), foreground_color.get(1).unwrap().parse::<f32>().unwrap(), foreground_color.get(2).unwrap().parse::<f32>().unwrap(), foreground_color.get(3).unwrap().parse::<f32>().unwrap()];
+
             let refresh_rate_in_miliseconds = settings_rows
                 .get(3)
                 .unwrap()
@@ -221,6 +223,14 @@ pub mod maze_maker {
                 .collect::<Vec<&str>>();
             let refresh_rate_in_miliseconds = refresh_rate_in_miliseconds.get(1).unwrap();
             let refresh_rate_in_miliseconds: u64 = refresh_rate_in_miliseconds.parse::<u64>().unwrap();
+
+            let wait_then_solve_in_miliseconds = settings_rows
+                .get(4)
+                .unwrap()
+                .split(':')
+                .collect::<Vec<&str>>();
+            let wait_then_solve_in_miliseconds = wait_then_solve_in_miliseconds.get(1).unwrap();
+            let wait_then_solve_in_miliseconds: u64 = wait_then_solve_in_miliseconds.parse::<u64>().unwrap();
 
             let (mut cell_width, mut cell_height) = graphics::drawable_size(context);
             cell_width /= table[1] as f32;
@@ -298,7 +308,7 @@ pub mod maze_maker {
                 cells,
                 edges,
                 head_node,
-                current_milisec: 1000,
+                current_milisec: wait_then_solve_in_miliseconds,
                 next_milisec: 0,
                 foreground_color,
                 refresh_rate_in_miliseconds
